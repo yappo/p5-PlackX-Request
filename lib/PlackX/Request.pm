@@ -5,7 +5,7 @@ use URI::QueryParam;
 BEGIN { require Carp }; # do not call Carp->import for performance
 
 use Socket qw[AF_INET inet_aton]; # for _build_hostname
-use HTTP::Engine::Request::Upload;
+use PlackX::Request::Upload;
 
 use PlackX::Request::Types qw( Uri );
 
@@ -238,7 +238,7 @@ sub _build_uploads {
             my $headers = HTTP::Headers->new( %{ $upload->{headers} } );
             push(
                 @uploads,
-                HTTP::Engine::Request::Upload->new(
+                PlackX::Request::Upload->new(
                     headers  => $headers,
                     tempname => $upload->{tempname},
                     size     => $upload->{size},
@@ -430,7 +430,7 @@ sub content {
     my ( $self, @args ) = @_;
 
     if ( @args ) {
-        Carp::croak "The HTTP::Request method 'content' is unsupported when used as a writer, use HTTP::Engine::RequestBuilder";
+        Carp::croak "The HTTP::Request method 'content' is unsupported when used as a writer, use PlackX::RequestBuilder";
     } else {
         return $self->raw_body;
     }
