@@ -7,16 +7,15 @@ use PlackX::Request::Types qw( Uri Header );
 
 our $VERSION = '0.01';
 
-
-sub new_from_psgi {
+sub BUILDARGS {
     my($class, $env) = @_;
-    $class->new(
+    {
         _connection => {
             env           => $env,
             input_handle  => $env->{'psgi.input'},
             error_handle  => $env->{'psgi.errors'},
         },
-    );
+    };
 }
 
 has _connection => (
@@ -169,7 +168,7 @@ server enviroments.
 
 =head2 new
 
-    PlackX::Request->new_from_psgi( $psgi_env );
+    PlackX::Request->new( $psgi_env );
 
 =head1 ATTRIBUTES
 

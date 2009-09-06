@@ -15,7 +15,7 @@ my $env = {
     'psgi.url_scheme' => 'http',
 };
 
-my $req = PlackX::Request->new_from_psgi( $env );
+my $req = PlackX::Request->new( $env );
 
 isa_ok($req, 'PlackX::Request');
 
