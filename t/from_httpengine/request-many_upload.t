@@ -6,6 +6,7 @@ use Test::More;
 plan tests => 12;
 
 use File::Temp qw( tempdir );
+use IO::Scalar;
 use HTTP::Headers;
 use HTTP::Request;
 use Cwd;
@@ -45,6 +46,12 @@ SHOGUN6
 $content =~ s/\r\n/\n/g;
 $content =~ s/\n/\r\n/g;
 
+tie *STDIN, 'IO::Scalar', \$content;
+$ENV{CONTENT_LENGTH} = length($content);
+$ENV{CONTENT_TYPE}   = 'multipart/form-data; boundary=----BOUNDARY';
+$ENV{REQUEST_METHOD} = 'POST';
+$ENV{SCRIPT_NAME}    = '/';
+
 my $req = HTTP::Request->new(
     POST => 'http://localhost/',
     HTTP::Headers::Fast->new(
@@ -59,10 +66,10 @@ sub test_path {
     is index(Cwd::realpath($lhs), Cwd::realpath($rhs)), 0;
 }
 
-run_engine {
-    my $req = shift;
+do {
+    my $req = req;
     my $tempdir = tempdir( CLEANUP => 1 );
-    $req->request_builder->upload_tmp($tempdir);
+    $req->_body_parser->upload_tmp($tempdir);
 
     my @undef = $req->upload('undef');
     is @undef, 0;
@@ -86,5 +93,4 @@ run_engine {
     test_path $test_upload_file6[0]->tempname, $tempdir;
     is $test_upload_file6[0]->slurp, 'SHOGUN6';
 
-    HTTP::Engine::Response->new;
-} $req;
+};

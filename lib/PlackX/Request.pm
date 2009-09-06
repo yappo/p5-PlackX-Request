@@ -267,7 +267,7 @@ has uploads => (
 
 sub _build_uploads {
     my $self = shift;
-    $self->request_builder->_prepare_uploads($self);
+    $self->_body_parser->_prepare_uploads($self);
 }
 
 # aliases
@@ -314,6 +314,37 @@ sub param {
     }
 }
 
+sub upload {
+    my $self = shift;
+
+    return keys %{ $self->uploads } if @_ == 0;
+
+    if (@_ == 1) {
+        my $upload = shift;
+        return wantarray ? () : undef unless exists $self->uploads->{$upload};
+
+        if (ref $self->uploads->{$upload} eq 'ARRAY') {
+            return (wantarray)
+              ? @{ $self->uploads->{$upload} }
+          : $self->uploads->{$upload}->[0];
+        } else {
+            return (wantarray)
+              ? ( $self->uploads->{$upload} )
+          : $self->uploads->{$upload};
+        }
+    } else {
+        while ( my($field, $upload) = splice(@_, 0, 2) ) {
+            if ( exists $self->uploads->{$field} ) {
+                for ( $self->uploads->{$field} ) {
+                    $_ = [$_] unless ref($_) eq "ARRAY";
+                    push(@{ $_ }, $upload);
+                }
+            } else {
+                $self->uploads->{$field} = $upload;
+            }
+        }
+    }
+}
 
 has uri => (
     is     => 'rw',
