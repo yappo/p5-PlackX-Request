@@ -76,38 +76,6 @@ sub _handle_read_chunk {
     $d->{http_body}->add($chunk);
 }
 
-sub _prepare_uploads  {
-    my($self, $req) = @_;
-
-    my $uploads = $req->http_body->upload;
-    my %uploads;
-    for my $name (keys %{ $uploads }) {
-        my $files = $uploads->{$name};
-        $files = ref $files eq 'ARRAY' ? $files : [$files];
-
-        my @uploads;
-        for my $upload (@{ $files }) {
-            my $headers = HTTP::Headers->new( %{ $upload->{headers} } );
-            push(
-                @uploads,
-                HTTP::Engine::Request::Upload->new(
-                    headers  => $headers,
-                    tempname => $upload->{tempname},
-                    size     => $upload->{size},
-                    filename => $upload->{filename},
-                )
-            );
-        }
-        $uploads{$name} = @uploads > 1 ? \@uploads : $uploads[0];
-
-        # support access to the filename as a normal param
-        my @filenames = map { $_->{filename} } @uploads;
-        $req->parameters->{$name} =  @filenames > 1 ? \@filenames : $filenames[0];
-    }
-    return \%uploads;
-}
-
-
 # by HTTP::Engine::Role::RequestBuilder::ReadBody
 
 sub _read_to_end {
