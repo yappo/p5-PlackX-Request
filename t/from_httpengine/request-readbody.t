@@ -20,7 +20,7 @@ do {
     };
     do { 
         local $@;
-        eval { $req->request_builder->_io_read };
+        eval { $req->_body_parser->_io_read };
         like $@, qr/no handle/;
     };
 };
@@ -47,7 +47,7 @@ do {
         $state->{read_position} = 0;
     };
 
-    $req->request_builder->_read_all($state);
+    $req->_body_parser->_read_all($state);
     $reset->();
 
     read_to_end($req, $state, sub { $state->{read_position}-- }, 'Wrong Content-Length value: 3');
@@ -59,24 +59,24 @@ do {
     do {
         no strict 'refs';
         no warnings 'redefine';
-        *{ref($req->request_builder) . '::_io_read'} = sub { };
+        *{ref($req->_body_parser) . '::_io_read'} = sub { };
         local $@;
-        eval { $req->request_builder->_read($state); };
+        eval { $req->_body_parser->_read($state); };
         like $@, qr/Unknown error reading input/;
     };
 };
 
 sub read_to_end {
     my($req, $state, $code, $re) = @_;
-    my $orig = $req->request_builder->can( '_read_all' );
+    my $orig = $req->_body_parser->can( '_read_all' );
 
     no strict 'refs';
     no warnings 'redefine';
-    *{ref($req->request_builder) . '::_read_all'} = sub { $orig->(@_); $code->() };
+    *{ref($req->_body_parser) . '::_read_all'} = sub { $orig->(@_); $code->() };
 
     local $@;
-    eval { $req->request_builder->_read_to_end($state); };
+    eval { $req->_body_parser->_read_to_end($state); };
     like $@, qr/\Q$re\E/, $re;
 
-    *{ref($req->request_builder) . '::_read_all'} = $orig; # restore
+    *{ref($req->_body_parser) . '::_read_all'} = $orig; # restore
 }
