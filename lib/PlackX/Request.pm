@@ -2,7 +2,7 @@ package PlackX::Request;
 use Any::Moose;
 use HTTP::Headers;
 use URI::QueryParam;
-#require Carp; # Carp->import is too heavy =(
+BEGIN { require Carp }; # do not call Carp->import for performance
 
 use Socket qw[AF_INET inet_aton]; # for _build_hostname
 
