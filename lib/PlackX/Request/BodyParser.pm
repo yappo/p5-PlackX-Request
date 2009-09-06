@@ -4,13 +4,6 @@ use Any::Moose;
 use HTTP::Body;
 use HTTP::Engine::Request::Upload;
 
-#has 'req' => (
-#    is       => 'ro',
-#    isa      => 'PlackX::Request',
-#    required => 1,
-#    weak_ref => 1,
-#);
-
 # by HTTP::Engine::Role::RequestBuilder::HTTPBody
 
 # tempolary file path for upload file.
