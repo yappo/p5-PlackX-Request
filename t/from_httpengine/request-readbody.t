@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More tests => 4;
 use t::Utils;
 
 use File::Temp qw/:seekable/;
@@ -8,16 +8,8 @@ use HTTP::Engine::Request;
 
 
 do {
-    my $req = req(
-        _connection => {
-        },
-    );
+    my $req = req();
 
-    do { 
-        local $@;
-        eval { $req->raw_body };
-        like $@, qr/read initialization must set input_handle/;
-    };
     do { 
         local $@;
         eval { $req->_body_parser->_io_read };
@@ -31,12 +23,9 @@ do {
     $tmp->flush();
     $tmp->seek(0, File::Temp::SEEK_SET);
 
+    my $env = {%ENV, 'psgi.input' => $tmp};
     my $req = req(
-        _connection => {
-            env           => \%ENV,
-            input_handle  => $tmp,
-            output_handle => \*STDOUT,
-        },
+        env => $env,
         headers => {
             'Content-Length' => 3,
         },

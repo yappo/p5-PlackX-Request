@@ -50,7 +50,7 @@ sub _build_read_state {
     $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
 
     return $self->_read_init({
-        input_handle   => $req->_connection->{input_handle},
+        input_handle   => $req->env->{'psgi.input'},
         content_length => $length,
         read_position  => 0,
         data => {

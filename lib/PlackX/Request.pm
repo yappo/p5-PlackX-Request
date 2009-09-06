@@ -13,9 +13,6 @@ our $VERSION = '0.01';
 sub BUILDARGS {
     my($class, $env, %args) = @_;
     {
-        _connection => {
-            input_handle  => $env->{'psgi.input'},
-        },
         env           => $env,
         %args,
     };
@@ -36,12 +33,6 @@ sub BUILD {
         }
     }
 }
-
-has _connection => (
-    is => "ro",
-    isa => 'HashRef',
-    required => 1,
-);
 
 has connection_info => (
     is => "rw",
