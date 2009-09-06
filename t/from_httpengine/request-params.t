@@ -14,7 +14,8 @@ filters {
 
 run {
     my $block = shift;
-    my $req = req( parameters => $block->parameters );
+    my $req = req(env => {} );
+    $req->parameters($block->parameters);
     is_deeply $req->params, $block->parameters;
     is scalar($req->param), scalar(keys %{  $block->parameters });
 
