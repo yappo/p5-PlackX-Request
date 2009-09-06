@@ -9,8 +9,7 @@ plan tests => 3*blocks;
 filters { env  => ['yaml'] };
 run {
     my $block = shift;
-    local %ENV = %{ $block->env };
-    my $req = req();
+    my $req = req(env => $block->env);
     my $secure = $req->secure;
     is qq{"$secure"}  , $block->is_secure;
     is $req->uri      , $block->uri;
@@ -22,7 +21,7 @@ __END__
 ===
 --- env
   HTTP_HOST: example.com
-  HTTPS: ON
+  psgi.url_scheme: https
 --- is_secure: "1"
 --- uri: https://example.com/
 --- port: 443
@@ -30,7 +29,7 @@ __END__
 ===
 --- env
   HTTP_HOST: example.com
-  HTTPS: OFF
+  psgi.url_scheme: http
 --- is_secure: "0"
 --- uri: http://example.com/
 --- port: 80
@@ -38,6 +37,7 @@ __END__
 ===
 --- env
   HTTP_HOST: example.com
+  psgi.url_scheme: http
 --- is_secure: "0"
 --- uri: http://example.com/
 --- port: 80
@@ -45,8 +45,8 @@ __END__
 ===
 --- env
   HTTP_HOST: example.com
-  HTTPS: ON
   SERVER_PORT: 8443
+  psgi.url_scheme: https
 --- is_secure: "1"
 --- uri: https://example.com:8443/
 --- port: 8443
@@ -55,6 +55,7 @@ __END__
 --- env
   HTTP_HOST: example.com
   SERVER_PORT: 443 
+  psgi.url_scheme: https
 --- is_secure: "1"
 --- uri: https://example.com/
 --- port: 443
@@ -63,6 +64,7 @@ __END__
 --- env
   HTTP_HOST: example.com
   SERVER_PORT: 80
+  psgi.url_scheme: http
 --- is_secure: "0"
 --- uri: http://example.com/
 --- port: 80

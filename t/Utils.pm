@@ -14,7 +14,7 @@ sub req {
         'psgi.version'    => [ 1, 0 ],
         'psgi.input'      => $in,
         'psgi.errors'     => *STDERR,
-        'psgi.url_scheme' => ($ENV{HTTPS}||'off') =~ /^(?:on|1)$/i ? 'https' : 'http',
+        'psgi.url_scheme' => 'http',
         %ENV,
         %{ delete($args{env}) || +{} },
     };
