@@ -2,7 +2,6 @@ use strict;
 use warnings;
 use Test::More tests => 7;
 use t::Utils;
-use HTTP::Engine;
 use HTTP::Request;
 use CGI::Simple::Cookie;
 

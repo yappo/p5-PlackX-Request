@@ -78,8 +78,6 @@ has _raw_body => (
     lazy_build => 1,
 );
 
-# by HTTP::Engine::Role::RequestBuilder::ReadBody
-
 sub _read_to_end {
     my ( $self, ) = @_;
 
