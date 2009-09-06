@@ -210,7 +210,7 @@ has http_body => (
 
 sub _build_http_body {
     my $self = shift;
-    $self->request_builder->_build_http_body($self);
+    $self->_body_parser->_build_http_body($self);
 }
 
 # contains body_params and query_params
@@ -391,6 +391,16 @@ sub as_http_request {
 sub as_string {
     my $self = shift;
     $self->as_http_request->as_string; # FIXME not efficient
+}
+
+sub content {
+    my ( $self, @args ) = @_;
+
+    if ( @args ) {
+        Carp::croak "The HTTP::Request method 'content' is unsupported when used as a writer, use HTTP::Engine::RequestBuilder";
+    } else {
+        return $self->raw_body;
+    }
 }
 
 1;

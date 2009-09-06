@@ -22,6 +22,13 @@ has chunk_size => (
     default => 4096,
 );
 
+sub _build_http_body {
+    my ( $self, $req ) = @_;
+
+    $self->_read_to_end($req->_read_state);
+
+    return delete $req->_read_state->{data}{http_body};
+}
 
 sub _build_raw_body {
     my ( $self, $req ) = @_;
