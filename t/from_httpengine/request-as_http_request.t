@@ -10,8 +10,11 @@ sub gen_request {
     my $req = req(
         env => {
             REQUEST_METHOD => 'POST',
+            SERVER_NAME    => 'example.com',
+            SERVER_PORT    => 80,
+            PATH_INFO      => '/foo',
+            QUERY_STRING   => 'p=q',
         },
-        uri      => '/foo',
         raw_body => 'foo=bar',
     );
     $req->content_type('application/octet-stream');
@@ -22,7 +25,7 @@ sub test_req {
     my $req = shift;
     isa_ok $req, 'HTTP::Request';
     is $req->method,  'POST';
-    is $req->uri,     '/foo';
+    is $req->uri,     'http://example.com/foo?p=q';
     is $req->content, 'foo=bar';
     is $req->header('Content-Type'), 'application/octet-stream';
 }
