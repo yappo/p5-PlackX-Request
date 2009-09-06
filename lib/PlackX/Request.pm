@@ -343,11 +343,6 @@ sub _build_uri  {
 
     my $env = $self->env;
 
-    my $scheme = $self->secure ? 'https' : 'http';
-    my $host   = $env->{HTTP_HOST}   || $env->{SERVER_NAME};
-    my $port   = $env->{SERVER_PORT};
-    $port = ( $self->secure ? 443 : 80 ) unless $port; # dirty code for coverage_test 
-
     my $base_path;
     if (exists $env->{REDIRECT_URL}) {
         $base_path = $env->{REDIRECT_URL};
@@ -363,9 +358,9 @@ sub _build_uri  {
     $path = $base_path = '/' if $self->proxy_request;
 
     my $uri = URI->new;
-    $uri->scheme($scheme);
-    $uri->host($host);
-    $uri->port($port);
+    $uri->scheme($env->{'psgi.url_scheme'});
+    $uri->host($env->{HTTP_HOST}   || $env->{SERVER_NAME});
+    $uri->port($env->{SERVER_PORT});
     $uri->path($path || '/');
     $uri->query($env->{QUERY_STRING}) if $env->{QUERY_STRING};
 
