@@ -14,10 +14,11 @@ sub gen_request {
             SERVER_PORT    => 80,
             PATH_INFO      => '/foo',
             QUERY_STRING   => 'p=q',
+            CONTENT_LENGTH => 7,
+            CONTENT_TYPE   => 'application/octet-stream',
         },
         raw_body => 'foo=bar',
     );
-    $req->content_type('application/octet-stream');
     $req;
 }
 
