@@ -1,21 +1,11 @@
 use strict;
 use warnings;
-use Test::More tests => 4;
+use Test::More tests => 2;
 use t::Utils;
 
 use File::Temp qw/:seekable/;
 use HTTP::Engine::Request;
 
-
-do {
-    my $req = req();
-
-    do { 
-        local $@;
-        eval { $req->_body_parser->_io_read };
-        like $@, qr/no handle/;
-    };
-};
 
 do {
     my $tmp = File::Temp->new(UNLINK => 1);
@@ -44,15 +34,6 @@ do {
 
     read_to_end($req, $state, sub { $state->{read_position}++ }, 'Premature end of request body, -1 bytes remaining');
     $reset->();
-
-    do {
-        no strict 'refs';
-        no warnings 'redefine';
-        *{ref($req->_body_parser) . '::_io_read'} = sub { };
-        local $@;
-        eval { $req->_body_parser->_read($state); };
-        like $@, qr/Unknown error reading input/;
-    };
 };
 
 sub read_to_end {

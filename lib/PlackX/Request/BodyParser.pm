@@ -165,7 +165,7 @@ sub _read {
 
     my $readlen = ($remaining > $maxlength) ? $maxlength : $remaining;
 
-    my $rc = $self->_read_chunk($state, my $buffer, $readlen);
+    my $rc = $state->{input_handle}->read(my $buffer, $readlen);
 
     if (defined $rc) {
         $state->{read_position} += $rc;
@@ -173,22 +173,6 @@ sub _read {
     } else {
         die "Unknown error reading input: $!";
     }
-}
-
-sub _read_chunk {
-    my ( $self, $state ) = ( shift, shift );
-
-    my $handle = $state->{input_handle};
-
-    $self->_io_read( $handle, @_ );
-}
-
-sub _io_read {
-    my ( $self, $handle ) = ( shift, shift );
-
-    Carp::confess "no handle" unless defined $handle;
-
-    return $handle->read(@_);
 }
 
 1;
