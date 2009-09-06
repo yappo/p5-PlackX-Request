@@ -15,7 +15,7 @@ filters {
 
 run {
     my $block = shift;
-    my $env = {};
+    my $env = {SERVER_PORT => 80};
     if ($block->add_env && ref($block->add_env) eq 'HASH') {
         while (my($key, $val) = each %{ $block->add_env }) {
             $env->{$key} = $val;

@@ -52,6 +52,7 @@ do {
             CONTENT_TYPE   => 'multipart/form-data; boundary=----BOUNDARY',
             REQUEST_METHOD => 'POST',
             SCRIPT_NAME    => '/',
+            SERVER_PORT    => 80,
         }
     );
     my $tempdir = tempdir( CLEANUP => 1 );

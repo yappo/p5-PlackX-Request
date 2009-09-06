@@ -22,6 +22,7 @@ __END__
 --- env
   HTTP_HOST: example.com
   psgi.url_scheme: https
+  SERVER_PORT: 443
 --- is_secure: "1"
 --- uri: https://example.com/
 --- port: 443
@@ -30,6 +31,7 @@ __END__
 --- env
   HTTP_HOST: example.com
   psgi.url_scheme: http
+  SERVER_PORT: 80
 --- is_secure: "0"
 --- uri: http://example.com/
 --- port: 80
@@ -38,6 +40,7 @@ __END__
 --- env
   HTTP_HOST: example.com
   psgi.url_scheme: http
+  SERVER_PORT: 80
 --- is_secure: "0"
 --- uri: http://example.com/
 --- port: 80
