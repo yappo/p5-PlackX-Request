@@ -6,7 +6,7 @@ BEGIN { require Carp }; # do not call Carp->import for performance
 
 use Socket qw[AF_INET inet_aton]; # for _build_hostname
 
-use PlackX::Request::Types qw( Uri Header );
+use PlackX::Request::Types qw( Uri );
 
 our $VERSION = '0.01';
 
@@ -138,8 +138,7 @@ sub _build_raw_body {
 
 has headers => (
     is      => 'rw',
-    isa => Header,
-    coerce  => 1,
+    isa => 'HTTP::Headers',
     lazy_build => 1,
     handles => [ qw(content_encoding content_length content_type header referer user_agent) ],
 );

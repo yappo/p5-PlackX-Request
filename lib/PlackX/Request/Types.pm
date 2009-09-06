@@ -1,14 +1,13 @@
 package PlackX::Request::Types;
 use Any::Moose;
 use Any::Moose (
-    'X::Types'        => [-declare => [qw/Uri Header/]],
+    'X::Types'        => [-declare => [qw/Uri/]],
     'X::Types::'.any_moose() , [qw/HashRef Str Object CodeRef ArrayRef/],
 );
 
 use URI;
 use URI::WithBase;
 use URI::QueryParam;
-use HTTP::Headers;
 
 # Types
 do {
@@ -26,17 +25,6 @@ do {
         $uri->path($base);
         URI::WithBase->new( $_, $uri );
     };
-};
-
-do {
-    subtype Header,
-        as Object,
-        where { $_->isa('HTTP::Headers') };
-
-    coerce Header,
-        from ArrayRef, via { HTTP::Headers->new( @{$_} ) };
-    coerce Header,
-        from HashRef,  via { HTTP::Headers->new( %{$_} ) };
 };
 
 1;
