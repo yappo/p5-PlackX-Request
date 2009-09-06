@@ -14,13 +14,19 @@ sub BUILDARGS {
     my($class, $env, %args) = @_;
     {
         _connection => {
-            env           => $env,
             input_handle  => $env->{'psgi.input'},
             error_handle  => $env->{'psgi.errors'},
         },
+        env           => $env,
         %args,
     };
 }
+
+has env => (
+    is       => 'ro',
+    isa      => 'HashRef',
+    required => 1,
+);
 
 sub BUILD {
     my ( $self, $param ) = @_;
@@ -47,7 +53,7 @@ has connection_info => (
 sub _build_connection_info {
     my($self, ) = @_;
 
-    my $env = $self->_connection->{env};
+    my $env = $self->env;
 
     return {
         address      => $env->{REMOTE_ADDR},
@@ -115,7 +121,7 @@ has secure => (
 sub _build_secure {
     my $self = shift;
 
-    if ( $self->_connection->{env}->{'psgi.url_scheme'} eq 'https' ) {
+    if ( $self->env->{'psgi.url_scheme'} eq 'https' ) {
         return 1;
     }
 
@@ -175,7 +181,7 @@ has headers => (
 sub _build_headers {
     my ($self, ) = @_;
 
-    my $env = $self->_connection->{env};
+    my $env = $self->env;
 
     HTTP::Headers::Fast->new(
         map {
@@ -194,7 +200,7 @@ has hostname => (
 
 sub _build_hostname {
     my ( $self, ) = @_;
-    $self->_connection->{env}{REMOTE_HOST} || $self->_resolve_hostname;
+    $self->env->{REMOTE_HOST} || $self->_resolve_hostname;
 }
 
 sub _resolve_hostname {
@@ -356,7 +362,7 @@ has uri => (
 sub _build_uri  {
     my($self, ) = @_;
 
-    my $env = $self->_connection->{env};
+    my $env = $self->env;
 
     my $scheme = $self->secure ? 'https' : 'http';
     my $host   = $env->{HTTP_HOST}   || $env->{SERVER_NAME};
