@@ -15,7 +15,6 @@ sub BUILDARGS {
     {
         _connection => {
             input_handle  => $env->{'psgi.input'},
-            error_handle  => $env->{'psgi.errors'},
         },
         env           => $env,
         %args,
