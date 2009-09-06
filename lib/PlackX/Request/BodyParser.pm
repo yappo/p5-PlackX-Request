@@ -109,10 +109,6 @@ sub _prepare_uploads  {
 
 
 # by HTTP::Engine::Role::RequestBuilder::ReadBody
-sub _read_start {
-    my ( $self, $state ) = @_;
-    $state->{started} = 1;
-}
 
 sub _read_to_end {
     my ( $self, $state, @args ) = @_;
@@ -145,8 +141,6 @@ sub _read_all {
 
 sub _read {
     my ($self, $state) = @_;
-
-    $self->_read_start($state) unless $state->{started};
 
     my ( $length, $pos ) = @{$state}{qw(content_length read_position)};
 
