@@ -15,7 +15,9 @@ sub gen_request {
             CONTENT_TYPE     => 'application/octet-stream',
             'psgi.input'     => $in,
         },
-        uri      => '/foo',
+        uri      => do {
+            URI::WithBase->new( '/foo', URI->new('foo/') );
+        },
     );
     $req;
 }

@@ -6,8 +6,8 @@ BEGIN { require Carp }; # do not call Carp->import for performance
 
 use Socket qw[AF_INET inet_aton]; # for _build_hostname
 use PlackX::Request::Upload;
-
-use PlackX::Request::Types qw( Uri );
+use URI;
+use URI::WithBase;
 
 our $VERSION = '0.01';
 
@@ -333,8 +333,7 @@ sub upload {
 
 has uri => (
     is     => 'rw',
-    isa => Uri,
-    coerce => 1,
+    isa => 'URI::WithBase',
     lazy_build => 1,
     handles => [qw(base path)],
 );

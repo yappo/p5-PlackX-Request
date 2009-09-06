@@ -22,7 +22,19 @@ run {
         }
     }
     my %args = (env => $env);
-    $args{uri} = $block->base if $block->base; 
+    if (defined $block->base) {
+        $args{uri} = do {
+            local $_ = $block->base;
+            my $uri  = URI->new($_);
+            my $base = $uri->path;
+            $base =~ s{^/+}{};
+            $uri->path($base);
+            $base .= '/' unless $base =~ /\/$/;
+            $uri->query(undef);
+            $uri->path($base);
+            URI::WithBase->new( $_, $uri );
+        };
+    }
     my $req = req(
         %args
     );
