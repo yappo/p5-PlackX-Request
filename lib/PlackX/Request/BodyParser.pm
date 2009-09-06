@@ -2,9 +2,6 @@ package PlackX::Request::BodyParser;
 use Any::Moose;
 
 use HTTP::Body;
-use HTTP::Engine::Request::Upload;
-
-# by HTTP::Engine::Role::RequestBuilder::HTTPBody
 
 # tempolary file path for upload file.
 has upload_tmp => (

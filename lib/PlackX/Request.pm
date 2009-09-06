@@ -5,6 +5,7 @@ use URI::QueryParam;
 BEGIN { require Carp }; # do not call Carp->import for performance
 
 use Socket qw[AF_INET inet_aton]; # for _build_hostname
+use HTTP::Engine::Request::Upload;
 
 use PlackX::Request::Types qw( Uri );
 
