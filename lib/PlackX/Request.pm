@@ -32,7 +32,6 @@ sub BUILD {
     }
 }
 
-
 has _connection => (
     is => "ro",
     isa => 'HashRef',
@@ -59,6 +58,16 @@ sub _build_connection_info {
         _url_scheme  => $env->{'psgi.url_scheme'},
         request_uri  => $env->{REQUEST_URI},
     }
+}
+
+has "_read_state" => (
+    is => "rw",
+    lazy_build => 1,
+);
+
+sub _build__read_state {
+    my $self = shift;
+    $self->_body_parser->_build_read_state($self);
 }
 
 foreach my $attr qw(address method protocol user port _url_scheme request_uri) {
@@ -116,6 +125,18 @@ sub _build_proxy_request {
     return $self->request_uri;                             # TODO: return URI->new($self->request_uri);
 }
 
+has _body_parser => (
+    is      => 'ro',
+    isa     => 'PlackX::Request::BodyParser',
+    lazy_build => 1,
+);
+
+sub _build__body_parser {
+    my $self = shift;
+    require PlackX::Request::BodyParser;
+    PlackX::Request::BodyParser->new();
+}
+
 has raw_body => (
     is      => 'rw',
     isa     => 'Str',
@@ -124,6 +145,7 @@ has raw_body => (
 
 sub _build_raw_body {
     my $self = shift;
+    $self->_body_parser->_build_raw_body($self);
 }
 
 has headers => (

@@ -62,7 +62,6 @@ sub _handle_read_chunk {
 
 
 # by HTTP::Engine::Role::RequestBuilder::ReadBody
-
 sub _read_init {
     my ( $self, $read_state ) = @_;
 
