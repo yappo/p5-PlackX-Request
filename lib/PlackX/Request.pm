@@ -70,6 +70,23 @@ sub _build__read_state {
     $self->_body_parser->_build_read_state($self);
 }
 
+has cookies => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    lazy_build => 1,
+);
+
+sub _build_cookies {
+    my $self = shift;
+    require CGI::Simple::Cookie;
+
+    if (my $header = $self->header('Cookie')) {
+        return { CGI::Simple::Cookie->parse($header) };
+    } else {
+        return {};
+    }
+}
+
 foreach my $attr qw(address method protocol user port _url_scheme request_uri) {
     has $attr => (
         is => 'rw',
