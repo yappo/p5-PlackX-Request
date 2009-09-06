@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test::More tests => 2;
-use HTTP::Engine::Request;
+
 use t::Utils;
 
 do {

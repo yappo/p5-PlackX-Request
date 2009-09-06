@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test::Base;
-use HTTP::Engine::Request;
+
 use t::Utils;
 
 plan tests => 4*blocks;

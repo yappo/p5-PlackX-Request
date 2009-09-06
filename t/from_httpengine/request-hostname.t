@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
-use HTTP::Engine::Request;
+
 use t::Utils;
 
 plan tests => 2;

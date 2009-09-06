@@ -2,7 +2,7 @@ use strict;
 use warnings;
 use Test::Base;
 use t::Utils;
-use HTTP::Engine::Request;
+
 
 plan tests => 1*blocks;
 
