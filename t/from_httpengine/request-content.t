@@ -4,7 +4,15 @@ use Test::More tests => 2;
 use HTTP::Engine::Request;
 use t::Utils;
 
-my $req = req( raw_body => 'body' );
+my $body = 'body';
+open my $in, '<', \$body;
+my $req = req(
+    env => {
+        'psgi.input'   => $in,
+        CONTENT_LENGTH => 4,
+        CONTENT_TYPE   => 'application/octet-stream'
+    }
+);
 is $req->content, 'body';
 
 eval {
