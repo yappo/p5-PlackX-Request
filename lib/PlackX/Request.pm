@@ -34,26 +34,12 @@ sub BUILD {
     }
 }
 
-has connection_info => (
-    is => "rw",
-    isa => "HashRef",
-    lazy_build => 1,
-);
-
-sub _build_connection_info {
-    my($self, ) = @_;
-
-    my $env = $self->env;
-
-    return {
-        address      => $env->{REMOTE_ADDR},
-        protocol     => $env->{SERVER_PROTOCOL},
-        method       => $env->{REQUEST_METHOD},
-        port         => $env->{SERVER_PORT},
-        user         => $env->{REMOTE_USER},
-        request_uri  => $env->{REQUEST_URI},
-    }
-}
+sub address     { $_[0]->env->{REMOTE_ADDR} }
+sub protocol    { $_[0]->env->{SERVER_PROTOCOL} }
+sub method      { $_[0]->env->{REQUEST_METHOD} }
+sub port        { $_[0]->env->{SERVER_PORT} }
+sub user        { $_[0]->env->{REMOTE_USER} }
+sub request_uri { $_[0]->env->{REQUEST_URI} }
 
 has "_read_state" => (
     is => "rw",
@@ -82,14 +68,6 @@ sub _build_cookies {
     }
 }
 
-foreach my $attr qw(address method protocol user port request_uri) {
-    has $attr => (
-        is => 'rw',
-        # isa => "Str",                                                                                                 
-        lazy => 1,
-        default => sub { shift->connection_info->{$attr} },
-    );
-}
 has query_parameters => (
     is      => 'rw',
     isa     => 'HashRef',

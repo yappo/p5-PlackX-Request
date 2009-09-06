@@ -8,7 +8,9 @@ test_req( gen_request()->as_http_request );
 
 sub gen_request {
     my $req = req(
-        method   => 'POST',
+        env => {
+            REQUEST_METHOD => 'POST',
+        },
         uri      => '/foo',
         raw_body => 'foo=bar',
     );
