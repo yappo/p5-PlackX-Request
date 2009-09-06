@@ -15,13 +15,13 @@ filters {
 
 run {
     my $block = shift;
-    local %ENV = %ENV;
+    my $env = {};
     if ($block->add_env && ref($block->add_env) eq 'HASH') {
         while (my($key, $val) = each %{ $block->add_env }) {
-            $ENV{$key} = $val;
+            $env->{$key} = $val;
         }
     }
-    my %args;
+    my %args = (env => $env);
     $args{uri} = $block->base if $block->base; 
     my $req = req(
         %args
