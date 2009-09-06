@@ -8,15 +8,16 @@ use CGI::Simple::Cookie;
 
 # exist Cookie header.
 do {
-    # prepare
-    local $ENV{HTTP_COOKIE}    = 'Foo=Bar; Bar=Baz';
-    local $ENV{REQUEST_METHOD} = 'GET';
-    local $ENV{SCRIPT_NAME}    = '/';
-
     # do test
     do {
-        my $req = req;
-	is '2', $req->cookie;
+        my $req = req(
+            env => {
+                HTTP_COOKIE    => 'Foo=Bar; Bar=Baz',
+                REQUEST_METHOD => 'GET',
+                SCRIPT_NAME    => '/',
+            },
+        );
+        is '2', $req->cookie;
         is $req->cookie('undef'), undef;
         is $req->cookie('undef', 'undef'), undef;
         is $req->cookie('Foo')->value, 'Bar';
@@ -27,13 +28,14 @@ do {
 
 # no Cookie header
 do {
-    # prepare
-    local $ENV{REQUEST_METHOD} = 'GET';
-    local $ENV{SCRIPT_NAME}    = '/';
-
     # do test
     do {
-        my $req = req;
+        my $req = req(
+            env => {
+                REQUEST_METHOD => 'GET',
+                SCRIPT_NAME    => '/',
+            },
+        );
         is_deeply $req->cookies, {};
     };
 };

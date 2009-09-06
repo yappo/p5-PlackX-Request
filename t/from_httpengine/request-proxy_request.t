@@ -10,11 +10,11 @@ plan tests => 2*blocks;
 filters { env  => ['yaml'] };
 run {
     my $block = shift;
-    local %ENV = %{ $block->env };
-    local $ENV{HTTP_HOST} = 'example.org';
-    local $ENV{SCRIPT_NAME} = '/';
+    my $env = $block->env;
+    $env->{HTTP_HOST} = 'example.org';
+    $env->{SCRIPT_NAME} = '/';
 
-    my $req = req();
+    my $req = req(env => $env);
     is $req->uri, 'http://example.org/';
     is $req->proxy_request, $block->proxy_request;
 }

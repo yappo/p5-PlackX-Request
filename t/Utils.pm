@@ -15,7 +15,6 @@ sub req {
         'psgi.input'      => $in,
         'psgi.errors'     => *STDERR,
         'psgi.url_scheme' => 'http',
-        %ENV,
         %{ delete($args{env}) || +{} },
     };
     PlackX::Request->new($env, %args);

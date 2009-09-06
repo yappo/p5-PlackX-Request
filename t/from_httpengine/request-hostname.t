@@ -7,13 +7,10 @@ use t::Utils;
 plan tests => 2;
 
 # get hostname by REMOTE_HOST
-$ENV{REMOTE_HOST} = "mudage.example.com";
-is _get(), "mudage.example.com";
+is _get(REMOTE_HOST => 'mudage.example.com'), "mudage.example.com";
 
 # get hostname by REMOTE_ADDR
-$ENV{REMOTE_HOST} = '';
-$ENV{REMOTE_ADDR} = "127.0.0.1";
-ok _get();
+ok _get(REMOTE_HOST => '', REMOTE_ADDR => '127.0.0.1');
 
-sub _get { req()->hostname }
+sub _get { req(env => {@_})->hostname }
 
