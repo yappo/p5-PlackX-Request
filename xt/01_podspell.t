@@ -8,3 +8,14 @@ __DATA__
 Kazuhiro Osawa
 yappo <at> shibuya <döt> pl
 PlackX::Request
+
+API
+CGI
+Stringifies
+URI
+enviroments
+https
+param
+pm
+referer
+uri
