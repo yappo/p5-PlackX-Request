@@ -64,8 +64,8 @@ has _read_position => (
 sub BUILDARGS {
     my ( $class, $env ) = @_;
     +{
-        content_length       => $env->{'CONTENT_LENGTH'},
-        content_type         => $env->{'CONTENT_TYPE'},
+        content_length       => $env->{'CONTENT_LENGTH'} || 0,
+        content_type         => $env->{'CONTENT_TYPE'}   || '',
         input_handle         => $env->{'psgi.input'},
     };
 }
