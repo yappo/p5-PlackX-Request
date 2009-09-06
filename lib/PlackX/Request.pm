@@ -55,7 +55,6 @@ sub _build_connection_info {
         method       => $env->{REQUEST_METHOD},
         port         => $env->{SERVER_PORT},
         user         => $env->{REMOTE_USER},
-        _url_scheme  => $env->{'psgi.url_scheme'},
         request_uri  => $env->{REQUEST_URI},
     }
 }
@@ -87,7 +86,7 @@ sub _build_cookies {
     }
 }
 
-foreach my $attr qw(address method protocol user port _url_scheme request_uri) {
+foreach my $attr qw(address method protocol user port request_uri) {
     has $attr => (
         is => 'rw',
         # isa => "Str",                                                                                                 
@@ -116,7 +115,7 @@ has secure => (
 sub _build_secure {
     my $self = shift;
 
-    if ( $self->_url_scheme eq 'https' ) {
+    if ( $self->_connection->{env}->{'psgi.url_scheme'} eq 'https' ) {
         return 1;
     }
 
