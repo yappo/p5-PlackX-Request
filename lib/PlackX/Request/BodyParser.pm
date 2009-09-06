@@ -24,72 +24,87 @@ has chunk_size => (
     default => 4096,
 );
 
-sub _build_http_body {
-    my ( $self, $req ) = @_;
+sub http_body {
+    my ( $self, ) = @_;
 
-    $self->_read_to_end($req->_read_state);
-
-    return delete $req->_read_state->{data}{http_body};
+    $self->_read_to_end();
+    return $self->_http_body;
 }
 
-sub _build_raw_body {
-    my ( $self, $req ) = @_;
+sub raw_body {
+    my ( $self, ) = @_;
 
-    $self->_read_to_end($req->_read_state);
-
-    return delete $req->_read_state->{data}{raw_body};
+    $self->_read_to_end();
+    return $self->_raw_body;
 }
 
-sub _build_read_state {
-    my($self, $env) = @_;
+has 'content_length' => (
+    is => 'ro',
+    isa => 'Int',
+    required => 1,
+);
 
-    my $length = $env->{'CONTENT_LENGTH'};
-    Carp::confess "read initialization must set CONTENT_LENGTH"
-        unless defined $length;
+has 'content_type' => (
+    is => 'ro',
+    isa => 'Str',
+    required => 1,
+);
 
-    my $type   = $env->{'CONTENT_TYPE'};
+has _http_body => (
+    is => 'ro',
+    isa => 'HTTP::Body',
+    lazy => 1,
+    default => sub {
+        my $self = shift;
+        my $body = HTTP::Body->new($self->content_type, $self->content_length);
+        $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
+        $body;
+    },
+);
 
-    my $body = HTTP::Body->new($type, $length);
-    $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
+has _read_position => (
+    is  => 'ro',
+    isa => 'Int',
+    default => 0,
+);
 
-    my $input_handle = $env->{'psgi.input'};
-    Carp::confess "read initialization must set psgi.input"
-        unless defined $input_handle;
-
-    return {
-        input_handle   => $input_handle,
-        content_length => $length,
-        read_position  => 0,
-        data => {
-            raw_body      => "",
-            http_body     => $body,
-        },
+sub BUILDARGS {
+    my ( $class, $env ) = @_;
+    +{
+        content_length       => $env->{'CONTENT_LENGTH'},
+        content_type         => $env->{'CONTENT_TYPE'},
+        input_handle         => $env->{'psgi.input'},
     };
 }
 
-sub _handle_read_chunk {
-    my ( $self, $state, $chunk ) = @_;
+has 'input_handle' => (
+    is => 'ro',
+    required => 1,
+);
 
-    my $d = $state->{data};
-
-    $d->{raw_body} .= $chunk;
-    $d->{http_body}->add($chunk);
-}
+has _raw_body => (
+    is => 'ro',
+    isa => 'Str',
+    lazy_build => 1,
+);
 
 # by HTTP::Engine::Role::RequestBuilder::ReadBody
 
 sub _read_to_end {
-    my ( $self, $state, @args ) = @_;
+    my ( $self, ) = @_;
 
-    my $content_length = $state->{content_length};
+    my $content_length = $self->content_length;
 
     if ($content_length > 0) {
-        $self->_read_all($state, @args);
+        while (my $buffer = $self->_read() ) {
+            $self->{_raw_body} .= $buffer;
+            $self->_http_body->add($buffer);
+        }
 
         # paranoia against wrong Content-Length header
-        my $diff = $state->{content_length} - $state->{read_position};
+        my $diff = $content_length - $self->_read_position;
 
-        if ($diff) {
+        if ($diff != 0) {
             if ( $diff > 0) {
                 die "Wrong Content-Length value: " . $content_length;
             } else {
@@ -99,20 +114,10 @@ sub _read_to_end {
     }
 }
 
-sub _read_all {
-    my ( $self, $state ) = @_;
-
-    while (my $buffer = $self->_read($state) ) {
-        $self->_handle_read_chunk($state, $buffer);
-    }
-}
-
 sub _read {
-    my ($self, $state) = @_;
+    my ($self, ) = @_;
 
-    my ( $length, $pos ) = @{$state}{qw(content_length read_position)};
-
-    my $remaining = $length - $pos;
+    my $remaining = $self->content_length() - $self->_read_position();
 
     my $maxlength = $self->chunk_size;
 
@@ -123,10 +128,10 @@ sub _read {
 
     my $readlen = ($remaining > $maxlength) ? $maxlength : $remaining;
 
-    my $rc = $state->{input_handle}->read(my $buffer, $readlen);
+    my $rc = $self->input_handle->read(my $buffer, $readlen);
 
     if (defined $rc) {
-        $state->{read_position} += $rc;
+        $self->{_read_position} += $rc;
         return $buffer;
     } else {
         die "Unknown error reading input: $!";

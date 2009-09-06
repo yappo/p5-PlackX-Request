@@ -5,7 +5,7 @@ use HTTP::Engine::Request;
 use t::Utils;
 
 do {
-    my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN});
+    my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN, CONTENT_TYPE => 'text/plain'});
     $req->http_body->param(foo => 'bar');
     $req->http_body->param(hoge => 'one');
     $req->query_parameters({bar => 'baz', hoge => 'two'});
@@ -13,7 +13,7 @@ do {
 };
 
 do {
-    my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN});
+    my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN, CONTENT_TYPE => 'text/plain'});
     $req->http_body->param(foo => 'bar');
     $req->http_body->param(hoge => 'one');
     $req->query_parameters({bar => ['baz', 'bar'], hoge => 'two'});

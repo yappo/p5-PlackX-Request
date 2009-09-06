@@ -5,7 +5,7 @@ use HTTP::Engine::Request;
 use HTTP::Engine::Request::Upload;
 use t::Utils;
 
-my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN});
+my $req = req(env => {CONTENT_LENGTH => 0, 'psgi.input' => *STDIN, CONTENT_TYPE => 'text/plain'});
 
 # file1
 $req->upload(foo => HTTP::Engine::Request::Upload->new(filename => 'foo1.txt'));
