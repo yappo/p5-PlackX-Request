@@ -111,6 +111,7 @@ has secure => (
 sub _build_secure {
     my $self = shift;
 
+    no warnings; # TODO: remove this after fix test.
     if ( $self->env->{'psgi.url_scheme'} eq 'https' ) {
         return 1;
     }
