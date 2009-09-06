@@ -13,12 +13,9 @@ do {
     $tmp->flush();
     $tmp->seek(0, File::Temp::SEEK_SET);
 
-    my $env = {%ENV, 'psgi.input' => $tmp};
+    my $env = {%ENV, 'psgi.input' => $tmp, CONTENT_LENGTH => 3};
     my $req = req(
         env => $env,
-        headers => {
-            'Content-Length' => 3,
-        },
     );
     my $state = $req->_read_state;
     my $reset = sub {

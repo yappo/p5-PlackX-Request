@@ -62,7 +62,7 @@ has "_read_state" => (
 
 sub _build__read_state {
     my $self = shift;
-    $self->_body_parser->_build_read_state($self);
+    $self->_body_parser->_build_read_state($self->env);
 }
 
 has cookies => (

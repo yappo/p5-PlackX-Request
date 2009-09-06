@@ -41,16 +41,16 @@ sub _build_raw_body {
 }
 
 sub _build_read_state {
-    my($self, $req) = @_;
+    my($self, $env) = @_;
 
-    my $length = $req->content_length || 0;
-    my $type   = $req->header('Content-Type');
+    my $length = $env->{'CONTENT_LENGTH'} || 0;
+    my $type   = $env->{'CONTENT_TYPE'};
 
     my $body = HTTP::Body->new($type, $length);
     $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
 
     return $self->_read_init({
-        input_handle   => $req->env->{'psgi.input'},
+        input_handle   => $env->{'psgi.input'},
         content_length => $length,
         read_position  => 0,
         data => {
