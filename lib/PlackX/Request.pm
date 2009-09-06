@@ -403,6 +403,10 @@ sub content {
     }
 }
 
+sub parse {
+    Carp::croak "The HTTP::Request method 'parse' is unsupported, use HTTP::Engine::RequestBuilder";
+}
+
 1;
 __END__
 
