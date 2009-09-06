@@ -8,7 +8,7 @@ use Any::Moose (
 use URI;
 use URI::WithBase;
 use URI::QueryParam;
-use HTTP::Headers::Fast;
+use HTTP::Headers;
 
 # Types
 do {
@@ -31,12 +31,12 @@ do {
 do {
     subtype Header,
         as Object,
-        where { $_->isa('HTTP::Headers::Fast') || $_->isa('HTTP::Headers') };
+        where { $_->isa('HTTP::Headers') };
 
     coerce Header,
-        from ArrayRef, via { HTTP::Headers::Fast->new( @{$_} ) };
+        from ArrayRef, via { HTTP::Headers->new( @{$_} ) };
     coerce Header,
-        from HashRef,  via { HTTP::Headers::Fast->new( %{$_} ) };
+        from HashRef,  via { HTTP::Headers->new( %{$_} ) };
 };
 
 1;

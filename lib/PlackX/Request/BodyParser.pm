@@ -80,7 +80,7 @@ sub _prepare_uploads  {
 
         my @uploads;
         for my $upload (@{ $files }) {
-            my $headers = HTTP::Headers::Fast->new( %{ $upload->{headers} } );
+            my $headers = HTTP::Headers->new( %{ $upload->{headers} } );
             push(
                 @uploads,
                 HTTP::Engine::Request::Upload->new(

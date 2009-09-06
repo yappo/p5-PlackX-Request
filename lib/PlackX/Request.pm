@@ -1,6 +1,6 @@
 package PlackX::Request;
 use Any::Moose;
-use HTTP::Headers::Fast;
+use HTTP::Headers;
 use URI::QueryParam;
 #require Carp; # Carp->import is too heavy =(
 
@@ -170,7 +170,7 @@ sub _build_headers {
 
     my $env = $self->env;
 
-    HTTP::Headers::Fast->new(
+    HTTP::Headers->new(
         map {
             (my $field = $_) =~ s/^HTTPS?_//;
             ( $field => $env->{$_} );
