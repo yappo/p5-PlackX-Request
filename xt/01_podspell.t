@@ -19,3 +19,6 @@ param
 pm
 referer
 uri
+HTTP
+hostname
+IP
