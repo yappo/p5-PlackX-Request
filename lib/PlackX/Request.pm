@@ -3,20 +3,35 @@ use Any::Moose;
 use HTTP::Headers::Fast;
 use URI::QueryParam;
 #require Carp; # Carp->import is too heavy =(
+
+use Socket qw[AF_INET inet_aton]; # for _build_hostname
+
 use PlackX::Request::Types qw( Uri Header );
 
 our $VERSION = '0.01';
 
 sub BUILDARGS {
-    my($class, $env) = @_;
+    my($class, $env, %args) = @_;
     {
         _connection => {
             env           => $env,
             input_handle  => $env->{'psgi.input'},
             error_handle  => $env->{'psgi.errors'},
         },
+        %args,
     };
 }
+
+sub BUILD {
+    my ( $self, $param ) = @_;
+
+    foreach my $field qw(base path) {
+        if ( my $val = $param->{$field} ) {
+            $self->$field($val);
+        }
+    }
+}
+
 
 has _connection => (
     is => "ro",
@@ -54,6 +69,16 @@ foreach my $attr qw(address method protocol user port _url_scheme request_uri) {
         default => sub { shift->connection_info->{$attr} },
     );
 }
+has query_parameters => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    lazy_build => 1,
+);
+
+sub _build_query_parameters {
+    my $self = shift;
+    $self->uri->query_form_hash;
+}
 
 # https or not?
 has secure => (
@@ -90,6 +115,166 @@ sub _build_proxy_request {
     return '' unless $self->request_uri =~ m!^https?://!i; # TODO: return undef
     return $self->request_uri;                             # TODO: return URI->new($self->request_uri);
 }
+
+has raw_body => (
+    is      => 'rw',
+    isa     => 'Str',
+    lazy_build => 1,
+);
+
+sub _build_raw_body {
+    my $self = shift;
+}
+
+has headers => (
+    is      => 'rw',
+    isa => Header,
+    coerce  => 1,
+    lazy_build => 1,
+    handles => [ qw(content_encoding content_length content_type header referer user_agent) ],
+);
+
+sub _build_headers {
+    my ($self, ) = @_;
+
+    my $env = $self->_connection->{env};
+
+    HTTP::Headers::Fast->new(
+        map {
+            (my $field = $_) =~ s/^HTTPS?_//;
+            ( $field => $env->{$_} );
+        }
+        grep { /^(?:HTTP|CONTENT|COOKIE)/i } keys %$env
+    );
+}
+
+has hostname => (
+    is      => 'rw',
+    isa     => 'Str',
+    lazy_build => 1,
+);
+
+sub _build_hostname {
+    my ( $self, ) = @_;
+    $self->_connection->{env}{REMOTE_HOST} || $self->_resolve_hostname;
+}
+
+sub _resolve_hostname {
+    my ( $self, ) = @_;
+    gethostbyaddr( inet_aton( $self->address ), AF_INET );
+}
+# for win32 hacks
+BEGIN {
+    if ($^O eq 'MSWin32') {
+        no warnings 'redefine';
+        *_build_hostname = sub {
+            my ( $self, ) = @_;
+            my $address = $self->address;
+            return 'localhost' if $address eq '127.0.0.1';
+            return gethostbyaddr( inet_aton( $address ), AF_INET );
+        };
+    }
+}
+
+has http_body => (
+    is         => 'rw',
+    isa        => 'HTTP::Body',
+    lazy_build => 1,
+    handles => {
+        body_parameters => 'param',
+        body            => 'body',
+    },
+);
+
+sub _build_http_body {
+    my $self = shift;
+    $self->request_builder->_build_http_body($self);
+}
+
+# contains body_params and query_params
+has parameters => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    lazy_build => 1,
+);
+
+sub _build_parameters {
+    my $self = shift;
+
+    my $query = $self->query_parameters;
+    my $body = $self->body_parameters;
+
+    my %merged;
+
+    foreach my $hash ( $query, $body ) {
+        foreach my $name ( keys %$hash ) {
+            my $param = $hash->{$name};
+            push( @{ $merged{$name} ||= [] }, ( ref $param ? @$param : $param ) );
+        }
+    }
+
+    foreach my $param ( values %merged ) {
+        $param = $param->[0] if @$param == 1;
+    }
+
+    return \%merged;
+}
+
+has uploads => (
+    is      => 'rw',
+    isa     => 'HashRef',
+    lazy_build => 1,
+);
+
+sub _build_uploads {
+    my $self = shift;
+    $self->request_builder->_prepare_uploads($self);
+}
+
+# aliases
+*body_params  = \&body_parameters;
+*input        = \&body;
+*params       = \&parameters;
+*query_params = \&query_parameters;
+*path_info    = \&path;
+
+sub cookie {
+    my $self = shift;
+
+    return keys %{ $self->cookies } if @_ == 0;
+
+    if (@_ == 1) {
+        my $name = shift;
+        return undef unless exists $self->cookies->{$name}; ## no critic.
+        return $self->cookies->{$name};
+    }
+    return;
+}
+
+sub param {
+    my $self = shift;
+
+    return keys %{ $self->parameters } if @_ == 0;
+
+    if (@_ == 1) {
+        my $param = shift;
+        return wantarray ? () : undef unless exists $self->parameters->{$param};
+
+        if ( ref $self->parameters->{$param} eq 'ARRAY' ) {
+            return (wantarray)
+              ? @{ $self->parameters->{$param} }
+                  : $self->parameters->{$param}->[0];
+        } else {
+            return (wantarray)
+              ? ( $self->parameters->{$param} )
+                  : $self->parameters->{$param};
+        }
+    } else {
+        my $field = shift;
+        $self->parameters->{$field} = [@_];
+    }
+}
+
 
 has uri => (
     is     => 'rw',
@@ -143,6 +328,48 @@ sub _build_uri  {
     return URI::WithBase->new($uri, $base);
 }
 
+sub uri_with {
+    my($self, $args) = @_;
+    
+    Carp::carp( 'No arguments passed to uri_with()' ) unless $args;
+
+    for my $value (values %{ $args }) {
+        next unless defined $value;
+        for ( ref $value eq 'ARRAY' ? @{ $value } : $value ) {
+            $_ = "$_";
+            utf8::encode( $_ );
+        }
+    };
+    
+    my $uri = $self->uri->clone;
+    
+    $uri->query_form( {
+        %{ $uri->query_form_hash },
+        %{ $args },
+    } );
+    return $uri;
+}
+
+sub absolute_url {
+    my ($self, $location) = @_;
+
+    unless ($location =~ m!^https?://!) {
+        return URI->new( $location )->abs( $self->base );
+    } else {
+        return $location;
+    }
+}
+
+sub as_http_request {
+    my $self = shift;
+    require 'HTTP/Request.pm'; ## no critic
+    HTTP::Request->new( $self->method, $self->uri, $self->headers, $self->raw_body );
+}
+
+sub as_string {
+    my $self = shift;
+    $self->as_http_request->as_string; # FIXME not efficient
+}
 
 1;
 __END__
