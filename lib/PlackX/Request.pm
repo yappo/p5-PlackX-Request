@@ -115,10 +115,7 @@ sub _build_secure {
         return 1;
     }
 
-    if ( my $port = $self->port ) {
-        return 1 if $port == 443;
-    }
-
+    return 1 if $self->port == 443;
     return 0;
 }
 
