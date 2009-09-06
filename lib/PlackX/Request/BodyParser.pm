@@ -43,21 +43,28 @@ sub _build_raw_body {
 sub _build_read_state {
     my($self, $env) = @_;
 
-    my $length = $env->{'CONTENT_LENGTH'} || 0;
+    my $length = $env->{'CONTENT_LENGTH'};
+    Carp::confess "read initialization must set CONTENT_LENGTH"
+        unless defined $length;
+
     my $type   = $env->{'CONTENT_TYPE'};
 
     my $body = HTTP::Body->new($type, $length);
     $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
 
-    return $self->_read_init({
-        input_handle   => $env->{'psgi.input'},
+    my $input_handle = $env->{'psgi.input'};
+    Carp::confess "read initialization must set psgi.input"
+        unless defined $input_handle;
+
+    return {
+        input_handle   => $input_handle,
         content_length => $length,
         read_position  => 0,
         data => {
             raw_body      => "",
             http_body     => $body,
         },
-    });
+    };
 }
 
 sub _handle_read_chunk {
@@ -102,17 +109,6 @@ sub _prepare_uploads  {
 
 
 # by HTTP::Engine::Role::RequestBuilder::ReadBody
-sub _read_init {
-    my ( $self, $read_state ) = @_;
-
-    foreach my $key qw(input_handle content_length) {
-        Carp::confess "read initialization must set $key"
-            unless defined $read_state->{$key};
-    }
-
-    return $read_state;
-}
-
 sub _read_start {
     my ( $self, $state ) = @_;
     $state->{started} = 1;
