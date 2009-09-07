@@ -1,5 +1,6 @@
 package PlackX::Request;
-use Any::Moose;
+use strict;
+use warnings;
 use HTTP::Headers;
 use URI::QueryParam;
 BEGIN { require Carp }; # do not call Carp->import for performance
@@ -11,29 +12,45 @@ use URI::WithBase;
 
 our $VERSION = '0.01';
 
-sub BUILDARGS {
+sub new {
     my($class, $env, %args) = @_;
-    {
-        env           => $env,
-        %args,
-    };
-}
 
-has env => (
-    is       => 'ro',
-    isa      => 'HashRef',
-    required => 1,
-);
+    Carp::confess q{Attribute (env) is required}
+        unless defined $env && ref($env) eq 'HASH';
 
-sub BUILD {
-    my ( $self, $param ) = @_;
+    my $self = bless {
+        env => $env,
+        %args, # FIXME delete
+    }, $class;
 
+    # set to URI::WithBase
     foreach my $field qw(base path) {
-        if ( my $val = $param->{$field} ) {
+        if ( my $val = $args{$field} ) {
             $self->$field($val);
         }
     }
+
+    $self;
 }
+
+sub _make_handles {
+    my($attribute, @names) = @_;
+    for my $name (@names) {
+        my($to, $from) = ref($name) eq 'ARRAY' ? @{ $name } : ($name, $name);
+        my $code = qq{sub $to { 
+    my \$self = shift;
+    unless (\$self->$attribute && \$self->$attribute->can('$from')) {
+        Carp::croak 'Cannot delegate type to $from because the value of $attribute is not defined';
+    }
+    \$self->$attribute->$from(\@_);
+}
+};
+        eval $code;## no critic
+    }
+}
+
+
+sub env { $_[0]->{env} }
 
 sub address     { $_[0]->env->{REMOTE_ADDR} }
 sub protocol    { $_[0]->env->{SERVER_PROTOCOL} }
@@ -42,120 +59,119 @@ sub port        { $_[0]->env->{SERVER_PORT} }
 sub user        { $_[0]->env->{REMOTE_USER} }
 sub request_uri { $_[0]->env->{REQUEST_URI} }
 
-has cookies => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    lazy_build => 1,
-);
-
-sub _build_cookies {
+sub cookies {
     my $self = shift;
-    require CGI::Simple::Cookie;
-
-    if (my $header = $self->header('Cookie')) {
-        return { CGI::Simple::Cookie->parse($header) };
-    } else {
-        return {};
+    if (defined $_[0]) {
+        unless (ref($_[0]) eq 'HASH') {
+            Carp::confess "Attribute (cookies) does not pass the type constraint because: Validation failed for 'HashRef' failed with value $_[0]";
+        }
+        $self->{cookies} = $_[0];
+    } elsif (!defined $self->{cookies}) {
+        require CGI::Simple::Cookie;
+        if (my $header = $self->header('Cookie')) {
+            $self->{cookies} = { CGI::Simple::Cookie->parse($header) };
+        } else {
+            $self->{cookies} = {};
+        }
     }
+    $self->{cookies};
 }
 
-has query_parameters => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    lazy_build => 1,
-);
-
-sub _build_query_parameters {
+sub query_parameters {
     my $self = shift;
-    $self->uri->query_form_hash;
+    if (defined $_[0]) {
+        unless (ref($_[0]) eq 'HASH') {
+            Carp::confess "Attribute (query_parameters) does not pass the type constraint because: Validation failed for 'HashRef' failed with value $_[0]";
+        }
+        $self->{query_parameters} = $_[0];
+    } elsif (!defined $self->{query_parameters}) {
+        $self->{query_parameters} = $self->uri->query_form_hash;
+    }
+    $self->{query_parameters};
 }
 
 # https or not?
-has secure => (
-    is      => 'rw',
-    isa     => 'Bool',
-    lazy_build => 1,
-);
-
-sub _build_secure {
+sub secure {
     my $self = shift;
-
-    if ( $self->env->{'psgi.url_scheme'} eq 'https' ) {
-        return 1;
+    if (defined $_[0]) {
+        $self->{secure} = !!$_[0];
+    } elsif (!defined $self->{secure}) {
+        if ( $self->env->{'psgi.url_scheme'} eq 'https' || $self->port == 443) {
+            $self->{secure} = 1;
+        } else {
+            $self->{secure} = 0;
+        }
     }
-
-    return 1 if $self->port == 443;
-    return 0;
+    $self->{secure};
 }
 
 # proxy request?
-has proxy_request => (
-    is         => 'rw',
-    isa        => 'Str', # TODO: union(Uri, Undef) type
-#    coerce     => 1,
-    lazy_build => 1,
-);
-
-sub _build_proxy_request {
+sub proxy_request {
     my $self = shift;
-    return '' unless $self->request_uri;                   # TODO: return undef
-    return '' unless $self->request_uri =~ m!^https?://!i; # TODO: return undef
-    return $self->request_uri;                             # TODO: return URI->new($self->request_uri);
-}
-
-has _body_parser => (
-    is      => 'ro',
-    isa     => 'PlackX::Request::BodyParser',
-    lazy_build => 1,
-);
-
-sub _build__body_parser {
-    my $self = shift;
-    require PlackX::Request::BodyParser;
-    PlackX::Request::BodyParser->new( $self->env );
-}
-
-has raw_body => (
-    is      => 'rw',
-    isa     => 'Str',
-    lazy_build => 1,
-);
-
-sub _build_raw_body {
-    my $self = shift;
-    $self->_body_parser->raw_body($self);
-}
-
-has headers => (
-    is      => 'rw',
-    isa => 'HTTP::Headers',
-    lazy_build => 1,
-    handles => [ qw(content_encoding content_length content_type header referer user_agent) ],
-);
-
-sub _build_headers {
-    my ($self, ) = @_;
-
-    my $env = $self->env;
-
-    HTTP::Headers->new(
-        map {
-            (my $field = $_) =~ s/^HTTPS?_//;
-            ( $field => $env->{$_} );
+    if (defined $_[0]) {
+        $self->{proxy_request} = $_[0];
+    } elsif (!defined $self->{proxy_request}) {
+        if ($self->request_uri && $self->request_uri =~ m!^https?://!i) {
+            $self->{proxy_request} = $self->request_uri;
+        } else {
+            $self->{proxy_request} = '';
         }
-        grep { /^(?:HTTP|CONTENT|COOKIE)/i } keys %$env
-    );
+    }
+    $self->{proxy_request};
 }
 
-has hostname => (
-    is      => 'rw',
-    isa     => 'Str',
-    lazy_build => 1,
-);
+sub _body_parser {
+    my $self = shift;
+    unless (defined $self->{_body_parser}) {
+        require PlackX::Request::BodyParser;
+        $self->{_body_parser} = PlackX::Request::BodyParser->new( $self->env );
+    }
+    $self->{_body_parser};
+}
 
-sub _build_hostname {
-    my ( $self, ) = @_;
-    $self->env->{REMOTE_HOST} || $self->_resolve_hostname;
+sub raw_body {
+    my $self = shift;
+    if (defined $_[0]) {
+        $self->{raw_body} = $_[0];
+    } elsif (!defined $self->{raw_body}) {
+        $self->{raw_body} = $self->_body_parser->raw_body($self);
+    }
+    $self->{raw_body};
+}
+
+
+sub headers {
+    my $self = shift;
+    if (defined $_[0]) {
+        unless (eval { $_[0]->isa('HTTP::Headers') }) {
+            Carp::confess "Attribute (headers) does not pass the type constraint because: Validation failed for 'HTTP::Headers' failed with value $_[0]";
+        }
+        $self->{headers} = $_[0];
+    } elsif (!defined $self->{headers}) {
+        my $env = $self->env;
+        $self->{headers} = HTTP::Headers->new(
+            map {
+                (my $field = $_) =~ s/^HTTPS?_//;
+                ( $field => $env->{$_} );
+            }
+                grep { /^(?:HTTP|CONTENT|COOKIE)/i } keys %$env
+            );
+    }
+    $self->{headers};
+}
+# make handles
+BEGIN {
+    _make_handles headers => qw/content_encoding content_length content_type header referer user_agent/;
+}
+
+sub hostname {
+    my $self = shift;
+    if (defined $_[0]) {
+        $self->{hostname} = $_[0];
+    } elsif (!defined $self->{hostname}) {
+        $self->{hostname} = $self->env->{REMOTE_HOST} || $self->_resolve_hostname;
+    }
+    $self->{hostname};
 }
 
 sub _resolve_hostname {
@@ -175,28 +191,36 @@ BEGIN {
     }
 }
 
-has http_body => (
-    is         => 'rw',
-    isa        => 'HTTP::Body',
-    lazy_build => 1,
-    handles => {
-        body_parameters => 'param',
-        body            => 'body',
-    },
-);
-
-sub _build_http_body {
+sub http_body {
     my $self = shift;
-    $self->_body_parser->http_body();
+    if (defined $_[0]) {
+        unless (eval { $_[0]->isa('HTTP::Body') }) {
+            Carp::confess "Attribute (http_body) does not pass the type constraint because: Validation failed for 'HTTP::Body' failed with value $_[0]";
+        }
+        $self->{http_body} = $_[0];
+    } elsif (!defined $self->{http_body}) {
+        $self->{http_body} = $self->_body_parser->http_body();
+    }
+    $self->{http_body};
+}
+# make handles
+BEGIN {
+    _make_handles http_body => [ body_parameters => 'param' ], 'body';
 }
 
 # contains body_params and query_params
-has parameters => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    lazy_build => 1,
-);
-
+sub parameters {
+    my $self = shift;
+    if (defined $_[0]) {
+        unless (ref($_[0]) eq 'HASH') {
+            Carp::confess "Attribute (parameters) does not pass the type constraint because: Validation failed for 'HashRef' failed with value $_[0]";
+        }
+        $self->{parameters} = $_[0];
+    } elsif (!defined $self->{parameters}) {
+        $self->{parameters} = $self->_build_parameters;
+    }
+    $self->{parameters};
+}
 sub _build_parameters {
     my $self = shift;
 
@@ -219,12 +243,18 @@ sub _build_parameters {
     return \%merged;
 }
 
-has uploads => (
-    is      => 'rw',
-    isa     => 'HashRef',
-    lazy_build => 1,
-);
-
+sub uploads {
+    my $self = shift;
+    if (defined $_[0]) {
+        unless (ref($_[0]) eq 'HASH') {
+            Carp::confess "Attribute (uploads) does not pass the type constraint because: Validation failed for 'HashRef' failed with value $_[0]";
+        }
+        $self->{uploads} = $_[0];
+    } elsif (!defined $self->{uploads}) {
+        $self->{uploads} = $self->_build_uploads;
+    }
+    $self->{uploads};
+}
 sub _build_uploads {
     my $self = shift;
     my $uploads = $self->http_body->upload;
@@ -331,13 +361,18 @@ sub upload {
     }
 }
 
-has uri => (
-    is     => 'rw',
-    isa => 'URI::WithBase',
-    lazy_build => 1,
-    handles => [qw(base path)],
-);
-
+sub uri {
+    my $self = shift;
+    if (defined $_[0]) {
+        unless (eval { $_[0]->isa('URI::WithBase') }) {
+            Carp::confess "Attribute (uri) does not pass the type constraint because: Validation failed for 'URI::WithBase' failed with value $_[0]";
+        }
+        $self->{uri} = $_[0];
+    } elsif (!defined $self->{uri}) {
+        $self->{uri} = $self->_build_uri;
+    }
+    $self->{uri};
+}
 sub _build_uri  {
     my($self, ) = @_;
 
@@ -375,6 +410,10 @@ sub _build_uri  {
     $base->path_query($base_path);
 
     return URI::WithBase->new($uri, $base);
+}
+# make handles
+BEGIN {
+    _make_handles uri => qw(base path);
 }
 
 sub uri_with {

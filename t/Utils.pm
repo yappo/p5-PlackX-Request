@@ -1,5 +1,6 @@
 package t::Utils;
-use Any::Moose;
+use strict;
+use warnings;
 use PlackX::Request;
 
 use base qw/Exporter/;
