@@ -1,54 +1,63 @@
 package PlackX::Request::Upload;
-use Any::Moose;
-has filename => (
-    is => 'ro',
-);
-has headers  => (
-    is => 'ro',
-    handles => {
-        type => 'content_type'
-    },
-);
-has size     => (
-    is => 'ro',
-);
-has tempname => (
-    is => 'ro',
-);
-has basename => (
-    is => 'ro',
-    lazy    => 1,
-    default => sub {
-        my $self = shift;
+use strict;
+use warnings;
+BEGIN { require Carp }; # do not call Carp->import for performance
+
+sub new {
+    my($class, %args) = @_;
+
+    bless {
+        headers  => $args{headers},
+        tempname => $args{tempname},
+        size     => $args{size},
+        filename => $args{filename},
+    }, $class;
+}
+
+sub filename { $_[0]->{filename} }
+sub headers  { $_[0]->{headers} }
+sub size     { $_[0]->{size} }
+sub tempname { $_[0]->{tempname} }
+
+sub type { 
+    my $self = shift;
+    unless ($self->{headers} && $self->{headers}->can('content_type')) {
+        Carp::croak 'Cannot delegate type to content_type because the value of headers is not defined';
+    }
+    $self->{headers}->content_type(@_);
+}
+
+sub basename {
+    my $self = shift;
+    unless (defined $self->{basename}) {
         require File::Spec::Unix;
-        my $basename = $self->filename;
+        my $basename = $self->{filename};
         $basename =~ s|\\|/|g;
         $basename = ( File::Spec::Unix->splitpath($basename) )[2];
         $basename =~ s|[^\w\.-]+|_|g;
-        $basename;
+        $self->{basename} = $basename;
     }
-);
+    $self->{basename};
+}
 
-has fh => (
-    is => 'ro',
-    lazy     => 1,
-    default  => sub {
+sub fh {
         my $self = shift;
-
-        open my $fh, '<', $self->tempname or die "Can't open '@{[ $self->tempname ]}': '$!'";
-        return $fh;
-    },
-);
+        unless (defined $self->{fh}) {
+            open my $fh, '<', $self->{tempname} or die "Can't open '@{[ $self->tempname ]}': '$!'";
+            $self->{fh} = $fh;
+        }
+        $self->{fh};
+}
 
 sub copy_to {
     my $self = shift;
     require File::Copy;
-    File::Copy::copy( $self->tempname, @_ );
+    File::Copy::copy( $self->{tempname}, @_ );
 }
 
 sub link_to {
     my ( $self, $target ) = @_;
-    CORE::link( $self->tempname, $target );
+    CORE::link( $self->{tempname}, $target );
 }
 
 sub slurp {
@@ -57,7 +66,7 @@ sub slurp {
     $layer = ':raw' unless $layer;
 
     my $content = undef;
-    my $handle  = $self->fh;
+    my $handle  = $self->{fh};
 
     binmode( $handle, $layer );
 
@@ -68,8 +77,6 @@ sub slurp {
     $content;
 }
 
-no Any::Moose;
-__PACKAGE__->meta->make_immutable(inline_destructor => 1);
 1;
 __END__
 
