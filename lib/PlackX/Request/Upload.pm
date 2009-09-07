@@ -41,12 +41,12 @@ sub basename {
 }
 
 sub fh {
-        my $self = shift;
-        unless (defined $self->{fh}) {
-            open my $fh, '<', $self->{tempname} or die "Can't open '@{[ $self->tempname ]}': '$!'";
-            $self->{fh} = $fh;
-        }
-        $self->{fh};
+    my $self = shift;
+    unless (defined $self->{fh}) {
+        open my $fh, '<', $self->{tempname} or die "Can't open '@{[ $self->tempname ]}': '$!'";
+        $self->{fh} = $fh;
+    }
+    $self->{fh};
 }
 
 sub copy_to {
@@ -66,7 +66,7 @@ sub slurp {
     $layer = ':raw' unless $layer;
 
     my $content = undef;
-    my $handle  = $self->{fh};
+    my $handle  = $self->fh;
 
     binmode( $handle, $layer );
 
