@@ -1,18 +1,30 @@
 package PlackX::Request::BodyParser;
-use Any::Moose;
-
+use strict;
+use warnings;
+BEGIN { require Carp }; # do not call Carp->import for performance
 use HTTP::Body;
 
-# tempolary file path for upload file.
-has upload_tmp => (
-    is => 'rw',
-);
+sub new {
+    my($class, $env) = @_;
 
-has chunk_size => (
-    is      => 'ro',
-    isa     => 'Int',
-    default => 4096,
-);
+    Carp::confess q{Attribute ($env->{'psgi.input'}) is required}
+        unless defined $env->{'psgi.input'};
+
+    bless {
+        content_length => $env->{'CONTENT_LENGTH'} || 0,
+        content_type   => $env->{'CONTENT_TYPE'}   || '',
+        input_handle   => $env->{'psgi.input'},
+        _read_position => 0,
+        chunk_size     => 4096,
+    }, $class;
+}
+
+# tempolary file path for upload file.
+sub upload_tmp {
+    $_[0]->{upload_tmp} = defined $_[1] ? $_[1] : $_[0]->{upload_tmp};
+}
+
+sub chunk_size { $_[0]->{chunk_size} }
 
 sub http_body {
     my ( $self, ) = @_;
@@ -25,58 +37,25 @@ sub raw_body {
     my ( $self, ) = @_;
 
     $self->_read_to_end();
-    return $self->_raw_body;
+    return $self->{_raw_body};
 }
 
-has 'content_length' => (
-    is => 'ro',
-    isa => 'Int',
-    required => 1,
-);
+sub content_length { $_[0]->{content_length} }
+sub content_type   { $_[0]->{content_type} }
 
-has 'content_type' => (
-    is => 'ro',
-    isa => 'Str',
-    required => 1,
-);
-
-has _http_body => (
-    is => 'ro',
-    isa => 'HTTP::Body',
-    lazy => 1,
-    default => sub {
-        my $self = shift;
+sub _http_body {
+    my($self, ) = @_;
+    unless (defined $self->{_http_body}) {
         my $body = HTTP::Body->new($self->content_type, $self->content_length);
-        $body->tmpdir( $self->upload_tmp) if $self->upload_tmp;
-        $body;
-    },
-);
-
-has _read_position => (
-    is  => 'ro',
-    isa => 'Int',
-    default => 0,
-);
-
-sub BUILDARGS {
-    my ( $class, $env ) = @_;
-    +{
-        content_length       => $env->{'CONTENT_LENGTH'} || 0,
-        content_type         => $env->{'CONTENT_TYPE'}   || '',
-        input_handle         => $env->{'psgi.input'},
-    };
+        $body->tmpdir( $self->upload_tmp ) if $self->upload_tmp;
+        $self->{_http_body} = $body;
+    }
+    $self->{_http_body};
 }
 
-has 'input_handle' => (
-    is => 'ro',
-    required => 1,
-);
+sub _read_position { $_[0]->{_read_position} }
 
-has _raw_body => (
-    is => 'ro',
-    isa => 'Str',
-    lazy_build => 1,
-);
+sub input_handle { $_[0]->{input_handle} }
 
 sub _read_to_end {
     my ( $self, ) = @_;
